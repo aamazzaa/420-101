@@ -1,93 +1,154 @@
 import java.util.ArrayList;
 
 /**
- * A class to hold details of audio files.
+ * A class to hold details of audio tracks.
+ * Individual tracks may be played.
  * 
  * @author David J. Barnes and Michael Kölling
  * @version 2016.02.29
  */
 public class MusicOrganizer
 {
-    // An ArrayList for storing the file names of music files.
-    private ArrayList<String> files;
-    // A player for the music files.
+    // An ArrayList for storing music tracks.
+    private ArrayList<Track> tracks;
+    // A player for the music tracks.
     private MusicPlayer player;
-        
+    // A reader that can read music files and load them as tracks.
+    private TrackReader reader;
+
     /**
      * Create a MusicOrganizer
      */
     public MusicOrganizer()
     {
-        files = new ArrayList<>();
+        tracks = new ArrayList<>();
         player = new MusicPlayer();
+        reader = new TrackReader();
+        readLibrary("../audio");
+        System.out.println("Music library loaded. " + getNumberOfTracks() + " tracks.");
+        System.out.println();
     }
     
     /**
-     * Add a file to the collection.
-     * @param filename The file to be added.
+     * Add a track file to the collection.
+     * @param filename The file name of the track to be added.
      */
     public void addFile(String filename)
     {
-        files.add(filename);
+        tracks.add(new Track(filename));
     }
     
     /**
-     * Return the number of files in the collection.
-     * @return The number of files in the collection.
+     * Add a track to the collection.
+     * @param track The track to be added.
      */
-    public int getNumberOfFiles()
+    public void addTrack(Track track)
     {
-        return files.size();
+        tracks.add(track);
     }
     
     /**
-     * List a file from the collection.
-     * @param index The index of the file to be listed.
+     * Play a track in the collection.
+     * @param index The index of the track to be played.
      */
-    public void listFile(int index)
+    public void playTrack(int index)
     {
-        if(validIndex(index)) {
-            String filename = files.get(index);
-            System.out.println(filename);
+        if(indexValid(index)) {
+            Track track = tracks.get(index);
+            player.startPlaying(track.getFilename());
+            track.incrementPlayCount(); // Increment the play count
+            System.out.println("Now playing: " + track.getArtist() + " - " + track.getTitle());
+            System.out.println("Play count: " + track.getPlayCount()); // Print the updated play count
         }
     }
     
     /**
-     * Show a list of all the files in the collection.
+     * Return the number of tracks in the collection.
+     * @return The number of tracks in the collection.
      */
-    public void listAllFiles()
+    public int getNumberOfTracks()
     {
-        int position = 0; // Local variable to track index
-        for(String filename : files) {
-            System.out.println(position + ": " + filename);
-            position++; // Increment index
-        }
+        return tracks.size();
     }
     
     /**
-     * Remove a file from the collection.
-     * @param index The index of the file to be removed.
+     * List a track from the collection.
+     * @param index The index of the track to be listed.
      */
-    public void removeFile(int index)
+    public void listTrack(int index)
     {
-        if(validIndex(index)) {
-            files.remove(index);
+        System.out.print("Track " + index + ": ");
+        Track track = tracks.get(index);
+        System.out.println(track.getDetails());
+    }
+    
+    /**
+     * Show a list of all the tracks in the collection.
+     */
+    public void listAllTracks()
+    {
+        System.out.println("Track listing: ");
+
+        for(Track track : tracks) {
+            System.out.println(track.getDetails());
+        }
+        System.out.println();
+    }
+    
+    /**
+     * List all tracks by the given artist.
+     * @param artist The artist's name.
+     */
+    public void listByArtist(String artist)
+    {
+        for(Track track : tracks) {
+            if(track.getArtist().contains(artist)) {
+                System.out.println(track.getDetails());
+            }
         }
     }
 
     /**
-     * Start playing a file in the collection.
-     * Use stopPlaying() to stop it playing.
-     * @param index The index of the file to be played.
+     * Remove all tracks whose titles contain the specified string.
+     * @param searchString The string to search for in track titles.
      */
-    public void startPlaying(int index)
+    public void removeTracksByTitleContaining(String searchString)
     {
-        if(validIndex(index)) {
-            String filename = files.get(index);
-            player.startPlaying(filename);
+        // Use an iterator to safely remove elements while iterating
+        for (int i = tracks.size() - 1; i >= 0; i--) {
+            Track track = tracks.get(i);
+            if (track.getTitle().contains(searchString)) {
+                tracks.remove(i);
+                System.out.println("Removed track: " + track.getTitle());
+            }
         }
     }
-
+    
+    /**
+     * Remove a track from the collection.
+     * @param index The index of the track to be removed.
+     */
+    public void removeTrack(int index)
+    {
+        if(indexValid(index)) {
+            tracks.remove(index);
+        }
+    }
+    
+    /**
+     * Play the first track in the collection, if there is one.
+     */
+    public void playFirst()
+    {
+        if(tracks.size() > 0) {
+            Track track = tracks.get(0);
+            player.startPlaying(track.getFilename());
+            track.incrementPlayCount(); // Increment the play count
+            System.out.println("Now playing: " + track.getArtist() + " - " + track.getTitle());
+            System.out.println("Play count: " + track.getPlayCount()); // Print the updated play count
+        }
+    }
+    
     /**
      * Stop the player.
      */
@@ -97,24 +158,12 @@ public class MusicOrganizer
     }
 
     /**
-     * Play a file in the collection. Only return once playing has finished.
-     * @param index The index of the file to be played.
-     */
-    public void playAndWait(int index)
-    {
-        if(validIndex(index)) {
-            String filename = files.get(index);
-            player.playSample(filename);
-        }
-    }
-
-    /**
      * Determine whether the given index is valid for the collection.
      * Print an error message if it is not.
      * @param index The index to be checked.
      * @return true if the index is valid, false otherwise.
      */
-    private boolean validIndex(int index)
+    private boolean indexValid(int index)
     {
         // The return value.
         // Set according to whether the index is valid or not.
@@ -124,7 +173,7 @@ public class MusicOrganizer
             System.out.println("Index cannot be negative: " + index);
             valid = false;
         }
-        else if(index >= files.size()) {
+        else if(index >= tracks.size()) {
             System.out.println("Index is too large: " + index);
             valid = false;
         }
@@ -133,52 +182,29 @@ public class MusicOrganizer
         }
         return valid;
     }
+    
+    private void readLibrary(String folderName)
+    {
+        ArrayList<Track> tempTracks = reader.readTracks(folderName, ".mp3");
 
-    /**
-     * List all files that match the given search string.
-     * @param searchString The string to match.
-     */
-    public void listMatching(String searchString) {
-        boolean found = false;
-        for (String filename : files) {
-            if (filename.contains(searchString)) {
-                System.out.println(filename);
-                found = true;
-            }
-        }
-        if (!found) {
-            System.out.println("No files match the search string: " + searchString);
+        // Put all the tracks into the organizer.
+        for(Track track : tempTracks) {
+            addTrack(track);
         }
     }
-
-    /**
-     * Play samples of all tracks by a particular artist.
-     * @param artist The artist's name.
-     */
-    public void playSamplesByArtist(String artist) {
-        for (String filename : files) {
-            if (filename.contains(artist)) {
-                player.playSample(filename);
-            }
+/**
+ * List all tracks of a specific genre.
+ * @param genre The genre to filter by.
+ */
+public void listByGenre(String genre)
+{
+    System.out.println("Tracks in genre '" + genre + "':");
+    for(Track track : tracks) {
+        if(track.getGenre().equalsIgnoreCase(genre)) {
+            System.out.println(track.getDetails());
         }
     }
+    System.out.println();
+}
 
-    /**
-     * Check if a number is prime.
-     * @param n The number to check.
-     * @return true if the number is prime, false otherwise.
-     */
-    public boolean isPrime(int n) {
-        if (n <= 1) {
-            return false;
-        }
-        int divisor = 2;
-        while (divisor < n) {
-            if (n % divisor == 0) {
-                return false;
-            }
-            divisor++;
-        }
-        return true;
-    }
 }
